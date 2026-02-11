@@ -54,6 +54,7 @@ if st.button("AI 전략 분석 시작!"):
                     views = int(item['statistics'].get('viewCount', 0))
                     if views >= min_views:
                         subs = chan_map.get(item['snippet']['channelId'], 0)
+                        # 바이럴 지수 계산
                         viral_score = views / subs if subs > 0 else 0
                         final_data.append({
                             "thumb": item['snippet']['thumbnails']['medium']['url'],
@@ -68,6 +69,7 @@ if st.button("AI 전략 분석 시작!"):
                         titles_text += " " + item['snippet']['title']
 
                 if final_data:
+                    # 조회수 높은 순으로 정렬
                     final_data = sorted(final_data, key=lambda x: x['views'], reverse=True)
                     
                     # --- AI 인사이트 섹션 ---
@@ -75,34 +77,43 @@ if st.button("AI 전략 분석 시작!"):
                     words = re.findall(r'\w+', titles_text)
                     common_words = [word for word, count in Counter(words).most_common(5) if len(word) > 1]
                     
-                    # 바이럴 영상 찾기 (구독자 대비 조회수 5배 이상)
                     viral_videos = [v for v in final_data if v['viral_score'] > 5]
                     
                     c1, c2 = st.columns(2)
                     with c1:
-                        st.info(f"✅ **핵심 키워드**: {', '.join(common_words)}\n\n제목과 썸네일에 이 단어들을 조합해 보세요.")
+                        st.info(f"✅ **핵심 키워드**: {', '.join(common_words)}")
                     with c2:
                         if viral_videos:
-                            st.success(f"🔥 **알고리즘 픽 발견**: 구독자 대비 조회수가 5배 이상 높은 영상이 {len(viral_videos)}개 있습니다. 이들의 썸네일 구도를 참고하세요!")
+                            st.success(f"🔥 **바이럴 영상 발견**: 총 {len(viral_videos)}개의 영상이 구독자 수 대비 압도적인 조회수를 기록 중입니다.")
                         else:
-                            st.warning("⚠️ 현재 이 키워드는 대형 채널 위주로 소비되고 있습니다. 니치한 공략이 필요합니다.")
+                            st.warning("⚠️ 현재 대형 채널들이 점유 중인 키워드입니다.")
                     
                     st.divider()
 
-                    # --- 그리드 출력 ---
+                    # --- 4열 그리드 출력 ---
                     cols = st.columns(4)
                     for idx, video in enumerate(final_data):
                         with cols[idx % 4]:
+                            # 썸네일 (클릭 시 링크)
                             st.markdown(f'<a href="{video["link"]}" target="_blank"><img src="{video["thumb"]}" style="width:100%; border-radius:8px;"></a>', unsafe_allow_html=True)
+                            
+                            # 제목
                             short_title = video['title'][:35] + ".." if len(video['title']) > 35 else video['title']
                             st.markdown(f"**[{short_title}]({video['link']})**")
-                            st.caption(f"{video['channel']} | 👤 {format_man(video['subs'])}")
                             
-                            # 바이럴 마크 표시
+                            # 정보 표시
+                            st.caption(f"{video['channel']} (👤 {format_man(video['subs'])})")
+                            
+                            # 조회수 및 바이럴 지수 표시
+                            v_text = f"🔥 {format_man(video['views'])}"
+                            score_text = f"📈 **지수**: {video['viral_score']:.1f}배"
+                            
                             if video['viral_score'] > 5:
-                                st.markdown(f"🚀 **{format_man(video['views'])}** (바이럴!)")
+                                st.write(f"{v_text} | {score_text} 🚀")
                             else:
-                                st.write(f"🔥 **{format_man(video['views'])}**")
+                                st.write(f"{v_text} | {score_text}")
+                                
+                            st.write(f"📅 {video['date']}")
                             st.write("---")
                 else:
                     st.warning("조건에 맞는 영상이 없습니다.")
