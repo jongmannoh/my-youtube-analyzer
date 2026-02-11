@@ -24,7 +24,7 @@ with st.sidebar:
     keyword = st.text_input("검색어", value="AI 애니메이션")
     days_limit = st.select_slider("업로드 날짜 (며칠 이내)", options=[10, 20, 30], value=10)
     min_views = st.number_input("최소 조회수", value=10000, step=10000)
-    max_results = st.slider("가져올 영상 개수", 1, 50, 20)
+    max_results = st.slider("가져올 영상 개수", 1, 50, 21) # 3의 배수로 맞추면 예쁩니다
     
     duration = st.selectbox("영상 길이", ["전체", "short (<4분)", "medium (4~20분)", "long (>20분)"])
     duration_map = {"전체": "any", "short (<4분)": "short", "medium (4~20분)": "medium", "long (>20분)": "long"}
@@ -65,7 +65,7 @@ if st.button("분석 시작!"):
                         titles_text += " " + title
                         
                         final_data.append({
-                            "thumb": item['snippet']['thumbnails']['high']['url'], # 더 고화질 썸네일
+                            "thumb": item['snippet']['thumbnails']['high']['url'],
                             "title": title,
                             "channel": item['snippet']['channelTitle'],
                             "views": views,
@@ -78,23 +78,26 @@ if st.button("분석 시작!"):
                     # 1. AI 트렌드 요약
                     words = re.findall(r'\w+', titles_text)
                     common_words = [word for word, count in Counter(words).most_common(5) if len(word) > 1]
-                    st.subheader("💡 최신 트렌드 핵심 요약")
-                    st.info(f"현재 핵심 키워드: **{', '.join(common_words)}**")
-
-                    # 2. 리스트형 결과 출력 (썸네일을 크게 보기 위함)
+                    st.subheader(f"💡 '{keyword}' 분야 핵심 키워드: {', '.join(common_words)}")
                     st.divider()
-                    for video in final_data:
-                        col1, col2 = st.columns([1, 2]) # 왼쪽 1: 오른쪽 2 비율
-                        
-                        with col1:
-                            st.image(video['thumb'], use_container_width=True)
-                        
-                        with col2:
-                            st.markdown(f"### [{video['title']}]({video['link']})")
-                            st.write(f"📺 **채널**: {video['channel']} | 👥 **구독자**: {format_man(video['subs'])}")
-                            st.write(f"🔥 **조회수**: {format_man(video['views'])} | 📅 **업로드**: {video['date']}")
-                            st.link_button("영상 보러가기", video['link'])
-                        st.divider()
+
+                    # 2. 그리드 레이아웃 (한 줄에 3개씩)
+                    cols = st.columns(3)
+                    for idx, video in enumerate(final_data):
+                        with cols[idx % 3]:
+                            # 썸네일 클릭 가능하게 HTML 사용
+                            st.markdown(
+                                f"""
+                                <a href="{video['link']}" target="_blank">
+                                    <img src="{video['thumb']}" style="width:100%; border-radius:10px; margin-bottom:10px;">
+                                </a>
+                                """, 
+                                unsafe_allow_html=True
+                            )
+                            st.markdown(f"**[{video['title']}]({video['link']})**", help=video['title'])
+                            st.caption(f"📺 {video['channel']} (👤 {format_man(video['subs'])})")
+                            st.write(f"🔥 **조회수**: {format_man(video['views'])} | 📅 {video['date']}")
+                            st.write("---")
                 else:
                     st.warning("조건에 맞는 영상이 없습니다.")
         except Exception as e:
